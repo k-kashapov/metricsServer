@@ -1,12 +1,12 @@
 package main
 
 import (
-	"log"
+	"encoding/json"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"log"
 	"net/http"
 	"strconv"
-	"strings"
-	"encoding/json"
 )
 
 func HandleStats(storage MemStorage) http.HandlerFunc {
@@ -22,31 +22,54 @@ func HandleStats(storage MemStorage) http.HandlerFunc {
 	}
 }
 
+func HandleGet(storage MemStorage) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vtype := chi.URLParam(r, "type")
+		name := chi.URLParam(r, "name")
+
+		switch vtype {
+		case "gauge":
+			val, ok := storage.Gauges[name]
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
+				fmt.Fprintln(w, "Not found:", name)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, val)
+		case "counter":
+			val, ok := storage.Counters[name]
+			if !ok {
+				w.WriteHeader(http.StatusNotFound)
+				fmt.Fprintln(w, "Not found:", name)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintln(w, val)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintln(w, "Invalid type:", vtype)
+			return
+		}
+	}
+}
+
 func HandleStorage(storage MemStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintln(w, "Request type is not POST")
-			return
-		}
+		vtype := chi.URLParam(r, "type")
+		name := chi.URLParam(r, "name")
+		value := chi.URLParam(r, "value")
 
-		trimmed := strings.TrimPrefix(r.URL.Path, "/update/")
-		updates := strings.Split(trimmed, "/")
-
-		if len(updates) < 3 {
-			w.WriteHeader(http.StatusNotFound)
-			fmt.Fprintln(w, "Insufficient arguments")
-			return
-		}
-
-		name := updates[1]
-
-		switch updates[0] {
+		switch vtype {
 		case "gauge":
-			val, err := strconv.ParseFloat(updates[2], 64)
+			val, err := strconv.ParseFloat(value, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Invalid argument: %s\n", updates[2])
+				fmt.Fprintln(w, "Invalid argument:", value)
 				return
 			}
 
@@ -54,10 +77,10 @@ func HandleStorage(storage MemStorage) http.HandlerFunc {
 			fmt.Fprintln(w, name, "is set to", val)
 
 		case "counter":
-			val, err := strconv.ParseInt(updates[2], 10, 64)
+			val, err := strconv.ParseInt(value, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
-				fmt.Fprintf(w, "Invalid argument: %s\n", updates[2])
+				fmt.Fprintln(w, "Invalid argument:", value)
 				return
 			}
 
@@ -66,7 +89,7 @@ func HandleStorage(storage MemStorage) http.HandlerFunc {
 
 		default:
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Invalid tpye: %s\n", updates[0])
+			fmt.Fprintln(w, "Invalid type:", vtype)
 			return
 		}
 
