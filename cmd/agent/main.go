@@ -1,33 +1,60 @@
 package main
 
 import (
-	"fmt"
 	"flag"
-	"log"
-	"time"
-	"runtime"
-	"net/http"
-	"math/rand"
+	"fmt"
+	"github.com/caarlos0/env/v6"
 	"io"
+	"log"
+	"math/rand"
+	"net/http"
 	"os"
 	"reflect"
+	"runtime"
+	"time"
 )
 
-var stats = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys", 
-						"HeapAlloc", "HeapIdle", "HeapInuse", "HeapObjects", "HeapReleased", 
-						"HeapSys", "LastGC", "Lookups", "MCacheInuse", "MCacheSys", "MSpanInuse", 
-						"MSpanSys", "Mallocs", "NextGC", "NumForcedGC", "NumGC", "OtherSys", 
-						"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
+var stats = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys",
+	"HeapAlloc", "HeapIdle", "HeapInuse", "HeapObjects", "HeapReleased",
+	"HeapSys", "LastGC", "Lookups", "MCacheInuse", "MCacheSys", "MSpanInuse",
+	"MSpanSys", "Mallocs", "NextGC", "NumForcedGC", "NumGC", "OtherSys",
+	"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
+
+type Config struct {
+	Addr    string        `env:"ADDRESS"`
+	RepSec  time.Duration `env:"REPORT_INTERVAL"`
+	PollSec time.Duration `env:"POLL_INTERVAL"`
+}
 
 func main() {
-	addr := flag.String("a", "localhost:8080", "endpoint address")
+	addrPtr := flag.String("a", "localhost:8080", "endpoint address")
 	reportSec := flag.Int("r", 10, "interval in seconds between reports to the server")
 	pollSec := flag.Int("p", 2, "interval in seconds between polling the stats")
 
-	flag.Parse()
+	var cfg Config
 
-	reportInterval := time.Duration(*reportSec) * time.Second
-	pollInterval := time.Duration(*pollSec) * time.Second
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	flag.Parse()
+	if cfg.Addr == "" {
+		cfg.Addr = *addrPtr
+	}
+
+	if cfg.RepSec == 0 {
+		cfg.RepSec = time.Duration(*reportSec)
+	}
+
+	if cfg.PollSec == 0 {
+		cfg.PollSec = time.Duration(*pollSec)
+	}
+
+	reportInterval := cfg.RepSec * time.Second
+	pollInterval := cfg.PollSec * time.Second
+
+	log.Printf("Running agent with config: addr=%s, reportInterval=%s, pollInterval=%s", cfg.Addr, reportInterval, pollInterval)
 
 	var stat runtime.MemStats
 	var timePassed time.Duration = reportInterval
@@ -38,14 +65,11 @@ func main() {
 		runtime.ReadMemStats(&stat)
 		time.Sleep(pollInterval)
 
-		fmt.Println("Sleep over")
-
 		timePassed += pollInterval
 		if timePassed >= reportInterval {
 			timePassed -= reportInterval
 
-			fmt.Println("Take over")
-			url := fmt.Sprint("http://", *addr, "/update/counter/", "pollCount/", "1")
+			url := fmt.Sprint("http://", cfg.Addr, "/update/counter/", "pollCount/", "1")
 			// fmt.Println("sending url =", url)
 			response, err := client.Post(url, "text/plain", nil)
 			if err != nil {
@@ -56,7 +80,7 @@ func main() {
 			response.Body.Close()
 
 			randomValue := rand.Int()
-			url = fmt.Sprint("http://", *addr, "/update/gauge/", "randomValue/", randomValue)
+			url = fmt.Sprint("http://", cfg.Addr, "/update/gauge/", "randomValue/", randomValue)
 
 			// fmt.Println("sending url =", url)
 			response, err = client.Post(url, "text/plain", nil)
@@ -69,7 +93,7 @@ func main() {
 
 			for _, name := range stats {
 				val := reflect.ValueOf(stat).FieldByName(name)
-				url = fmt.Sprint("http://", *addr, "/update/gauge/", name, "/", val)
+				url = fmt.Sprint("http://", cfg.Addr, "/update/gauge/", name, "/", val)
 
 				// fmt.Println("sending url =", url)
 				response, err = client.Post(url, "text/plain", nil)
