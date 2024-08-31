@@ -21,9 +21,9 @@ var stats = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys
 	"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
 
 type Config struct {
-	Addr string        `env:"SERVER_PORT"`
-	Rep  time.Duration `env:"REPORT_INTERVAL"`
-	Poll time.Duration `env:"POLL_INTERVAL"`
+	Addr    string `env:"SERVER_PORT"`
+	RepSec  int    `env:"REPORT_INTERVAL"`
+	PollSec int    `env:"POLL_INTERVAL"`
 }
 
 func main() {
@@ -43,16 +43,16 @@ func main() {
 		cfg.Addr = *addrPtr
 	}
 
-	if cfg.Rep == 0 {
-		cfg.Rep = time.Duration(*reportSec)
+	if cfg.RepSec == 0 {
+		cfg.RepSec = *reportSec
 	}
 
-	if cfg.Poll == 0 {
-		cfg.Poll = time.Duration(*pollSec)
+	if cfg.PollSec == 0 {
+		cfg.PollSec = *pollSec
 	}
 
-	reportInterval := cfg.Rep * time.Second
-	pollInterval := cfg.Poll * time.Second
+	reportInterval := time.Duration(cfg.RepSec) * time.Second
+	pollInterval := time.Duration(cfg.PollSec) * time.Second
 
 	log.Printf("Running agent with config: addr=%s, reportInterval=%s, pollInterval=%s", cfg.Addr, reportInterval, pollInterval)
 
