@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/go-chi/chi/v5"
 	"log"
-	"fmt"
 	"net/http"
 	"os"
 )
@@ -28,7 +27,6 @@ func main() {
 		addr = *addrPtr
 	}
 
-	fmt.Println("Running server at", addr)
 	log.Println("Running server at", addr)
 
 	storage := NewMemStorage()
