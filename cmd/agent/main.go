@@ -28,8 +28,8 @@ type Config struct {
 
 func main() {
 	addrPtr := flag.String("a", "localhost:8080", "endpoint address")
-	reportSec := flag.Int("r", 10, "interval in seconds between reports to the server")
-	pollSec := flag.Int("p", 2, "interval in seconds between polling the stats")
+	reportSec := flag.Int("r", 2, "interval in seconds between reports to the server")
+	pollSec := flag.Int("p", 1, "interval in seconds between polling the stats")
 
 	var cfg Config
 
