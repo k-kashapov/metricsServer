@@ -28,7 +28,7 @@ func main() {
 	}
 
 	log.Println("Running server at", addr)
-	
+
 	storage := NewMemStorage()
 	r := NewRouter(storage)
 

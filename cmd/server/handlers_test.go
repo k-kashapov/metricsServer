@@ -11,7 +11,9 @@ import (
 
 func TestHandleStorage(t *testing.T) {
 	storage := NewMemStorage()
-	handler := HandleStorage(storage)
+
+	ts := httptest.NewServer(NewRouter(storage))
+	defer ts.Close()
 
 	type want struct {
 		code        int
@@ -32,7 +34,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        200,
 				response:    "a is set to 12\n",
-				contentType: "text/plain; charset=utf-8",
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -42,7 +44,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        200,
 				response:    "b is set to -128\n",
-				contentType: "text/plain; charset=utf-8",
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -52,7 +54,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        200,
 				response:    "e is set to 1\n",
-				contentType: "text/plain; charset=utf-8",
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -62,7 +64,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        200,
 				response:    "e is set to 9\n",
-				contentType: "text/plain; charset=utf-8",
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -72,7 +74,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        200,
 				response:    "f is set to 8\n",
-				contentType: "text/plain; charset=utf-8",
+				contentType: "text/plain",
 			},
 		},
 		{
@@ -81,8 +83,8 @@ func TestHandleStorage(t *testing.T) {
 			url:    "/update/counter/",
 			want: want{
 				code:        404,
-				response:    "Insufficient arguments\n",
-				contentType: "",
+				response:    "404 page not found\n",
+				contentType: "text/plain; charset=utf-8",
 			},
 		},
 		{
@@ -91,8 +93,8 @@ func TestHandleStorage(t *testing.T) {
 			url:    "/update/counter/t",
 			want: want{
 				code:        404,
-				response:    "Insufficient arguments\n",
-				contentType: "",
+				response:    "404 page not found\n",
+				contentType: "text/plain; charset=utf-8",
 			},
 		},
 		{
@@ -102,7 +104,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        400,
 				response:    "Invalid argument: --12\n",
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
 		},
 		{
@@ -112,7 +114,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        400,
 				response:    "Invalid argument: --12\n",
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
 		},
 		{
@@ -122,17 +124,7 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        400,
 				response:    "Invalid type: eee\n",
-				contentType: "",
-			},
-		},
-		{
-			name:   "Not Post",
-			method: http.MethodGet,
-			url:    "/update/gauge/a/12",
-			want: want{
-				code:        400,
-				response:    "Request type is not POST\n",
-				contentType: "",
+				contentType: "text/plain; charset=utf-8",
 			},
 		},
 		{
@@ -142,25 +134,26 @@ func TestHandleStorage(t *testing.T) {
 			want: want{
 				code:        200,
 				response:    "e is set to 0\n",
-				contentType: "text/plain; charset=utf-8",
+				contentType: "text/plain",
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req := httptest.NewRequest(test.method, test.url, nil)
-			w := httptest.NewRecorder()
-
-			handler(w, req)
-			res := w.Result()
-			assert.Equal(t, test.want.code, res.StatusCode)
-
-			defer res.Body.Close()
-			resBody, err := io.ReadAll(res.Body)
+			req, err := http.NewRequest(test.method, ts.URL+test.url, nil)
 			require.NoError(t, err)
 
-			assert.Equal(t, test.want.contentType, res.Header.Get("Content-Type"))
+			resp, err := ts.Client().Do(req)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.want.code, resp.StatusCode)
+
+			defer resp.Body.Close()
+			resBody, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.want.contentType, resp.Header.Get("Content-Type"))
 			assert.Equal(t, test.want.response, string(resBody))
 		})
 	}

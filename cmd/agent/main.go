@@ -22,8 +22,8 @@ var stats = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys
 
 type Config struct {
 	Addr    string        `env:"ADDRESS"`
-	RepSec  time.Duration `env:"REPORT_INTERVAL"`
-	PollSec time.Duration `env:"POLL_INTERVAL"`
+	Rep  time.Duration `env:"REPORT_INTERVAL"`
+	Poll time.Duration `env:"POLL_INTERVAL"`
 }
 
 func main() {
@@ -43,25 +43,25 @@ func main() {
 		cfg.Addr = *addrPtr
 	}
 
-	if cfg.RepSec == 0 {
-		cfg.RepSec = time.Duration(*reportSec)
+	if cfg.Rep == 0 {
+		cfg.Rep = time.Duration(*reportSec)
 	}
 
-	if cfg.PollSec == 0 {
-		cfg.PollSec = time.Duration(*pollSec)
+	if cfg.Poll == 0 {
+		cfg.Poll = time.Duration(*pollSec)
 	}
 
-	reportInterval := cfg.RepSec * time.Second
-	pollInterval := cfg.PollSec * time.Second
+	reportInterval := cfg.Rep * time.Second
+	pollInterval := cfg.Poll * time.Second
 
 	log.Printf("Running agent with config: addr=%s, reportInterval=%s, pollInterval=%s", cfg.Addr, reportInterval, pollInterval)
 
 	var stat runtime.MemStats
-	var timePassed time.Duration = reportInterval
+	var timePassed time.Duration
 
 	client := &http.Client{}
 
-	for true {
+	for {
 		runtime.ReadMemStats(&stat)
 		time.Sleep(pollInterval)
 
