@@ -19,7 +19,7 @@ func NewRouter(storage MemStorage) chi.Router {
 }
 
 func main() {
-	addrPtr := flag.String("a", ":8080", "endpoint address")
+	addrPtr := flag.String("a", "localhost:8080", "endpoint address")
 
 	var addr string
 	addr, ok := os.LookupEnv("SERVER_PORT")
@@ -34,7 +34,7 @@ func main() {
 	storage := NewMemStorage()
 	r := NewRouter(storage)
 
-	err := http.ListenAndServe("localhost"+addr, r)
+	err := http.ListenAndServe(addr, r)
 	if err != nil {
 		log.Fatal(err)
 	}
