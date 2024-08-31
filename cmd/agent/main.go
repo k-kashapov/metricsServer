@@ -21,7 +21,7 @@ var stats = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys
 	"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
 
 type Config struct {
-	Addr    string `env:"SERVER_PORT"`
+	Addr    string `env:"ADDRESS"`
 	RepSec  int    `env:"REPORT_INTERVAL"`
 	PollSec int    `env:"POLL_INTERVAL"`
 }
