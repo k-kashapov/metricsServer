@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"github.com/go-chi/chi/v5"
 	"log"
 	"net/http"
@@ -16,10 +17,13 @@ func NewRouter(storage MemStorage) chi.Router {
 }
 
 func main() {
+	addr := flag.String("a", "localhost:8080", "endpoint address")
+	flag.Parse()
+
 	storage := NewMemStorage()
 	r := NewRouter(storage)
 
-	err := http.ListenAndServe(":8080", r)
+	err := http.ListenAndServe(*addr, r)
 	if err != nil {
 		log.Fatal(err)
 	}

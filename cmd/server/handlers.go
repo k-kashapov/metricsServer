@@ -74,6 +74,7 @@ func HandleStorage(storage MemStorage) http.HandlerFunc {
 			}
 
 			storage.UpdateGauge(name, val)
+			w.Header().Set("Content-Type", "text/plain")
 			fmt.Fprintln(w, name, "is set to", val)
 
 		case "counter":
@@ -85,6 +86,7 @@ func HandleStorage(storage MemStorage) http.HandlerFunc {
 			}
 
 			storage.UpdateCounter(name, val)
+			w.Header().Set("Content-Type", "text/plain")
 			fmt.Fprintln(w, name, "is set to", storage.Counters[name])
 
 		default:

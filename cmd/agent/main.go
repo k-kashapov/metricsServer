@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"flag"
 	"log"
 	"time"
 	"runtime"
@@ -19,9 +20,16 @@ var stats = [...]string{"Alloc", "BuckHashSys", "Frees", "GCCPUFraction", "GCSys
 						"PauseTotalNs", "StackInuse", "StackSys", "Sys", "TotalAlloc"}
 
 func main() {
+	addr := flag.String("a", "localhost:8080", "endpoint address")
+	reportSec := flag.Int("r", 10, "interval in seconds between reports to the server")
+	pollSec := flag.Int("p", 2, "interval in seconds between polling the stats")
+
+	flag.Parse()
+
+	reportInterval := time.Duration(*reportSec) * time.Second
+	pollInterval := time.Duration(*pollSec) * time.Second
+
 	var stat runtime.MemStats
-	pollInterval := 2 * time.Second
-	reportInterval := 5 * pollInterval
 	var timePassed time.Duration = reportInterval
 
 	client := &http.Client{}
@@ -30,11 +38,14 @@ func main() {
 		runtime.ReadMemStats(&stat)
 		time.Sleep(pollInterval)
 
+		fmt.Println("Sleep over")
+
 		timePassed += pollInterval
 		if timePassed >= reportInterval {
 			timePassed -= reportInterval
 
-			url := fmt.Sprint("http://localhost:8080/update/counter/", "pollCount/", "1")
+			fmt.Println("Take over")
+			url := fmt.Sprint("http://", *addr, "/update/counter/", "pollCount/", "1")
 			// fmt.Println("sending url =", url)
 			response, err := client.Post(url, "text/plain", nil)
 			if err != nil {
@@ -45,7 +56,7 @@ func main() {
 			response.Body.Close()
 
 			randomValue := rand.Int()
-			url = fmt.Sprint("http://localhost:8080/update/gauge/", "randomValue/", randomValue)
+			url = fmt.Sprint("http://", *addr, "/update/gauge/", "randomValue/", randomValue)
 
 			// fmt.Println("sending url =", url)
 			response, err = client.Post(url, "text/plain", nil)
@@ -58,7 +69,7 @@ func main() {
 
 			for _, name := range stats {
 				val := reflect.ValueOf(stat).FieldByName(name)
-				url = fmt.Sprint("http://localhost:8080/update/gauge/", name, "/", val)
+				url = fmt.Sprint("http://", *addr, "/update/gauge/", name, "/", val)
 
 				// fmt.Println("sending url =", url)
 				response, err = client.Post(url, "text/plain", nil)

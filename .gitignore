@@ -3,6 +3,7 @@
 #
 # Binaries for programs and plugins
 *.exe
+*.elf
 *.exe~
 *.dll
 *.so
