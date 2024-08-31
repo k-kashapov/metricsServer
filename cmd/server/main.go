@@ -21,7 +21,7 @@ func main() {
 	addrPtr := flag.String("a", "localhost:8080", "endpoint address")
 
 	var addr string
-	addr, ok := os.LookupEnv("ADDRESS")
+	addr, ok := os.LookupEnv("SERVER_PORT")
 	if !ok {
 		flag.Parse()
 		addr = *addrPtr
