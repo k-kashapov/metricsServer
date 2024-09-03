@@ -10,9 +10,9 @@ import (
 
 func NewRouter(storage MemStorage) chi.Router {
 	r := chi.NewRouter()
-	r.Post("/update/{type}/{name}/{value}", HandleStorage(storage))
-	r.Get("/value/{type}/{name}", HandleGet(storage))
-	r.Get("/", HandleStats(storage))
+	r.Post("/update/{type}/{name}/{value}", logHandler(HandleStorage(storage)))
+	r.Get("/value/{type}/{name}", logHandler(HandleGet(storage)))
+	r.Get("/", logHandler(HandleStats(storage)))
 
 	return r
 }
